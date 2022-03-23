@@ -1,17 +1,35 @@
 #!/bin/bash
 rpmpath=$1
-pkgname=$(echo "$rpmpath" | sed "s/.rpm//")
-if [ ! -f $rpmpath ]; then
-	echo "File '$rpmpath' not found!"
-	exit 1
+if [[ "$rpmpath" =~ ^http.* ]]; then
+	pkgname=(${rpmpath//\// })
+	pkgname=${pkgname[-1]}
+	pkgname=$(echo "$pkgname" | sed "s/.rpm//")
+else
+	pkgname=$(echo "$rpmpath" | sed "s/.rpm//")
+fi
+if [ -z $pkgname ]; then
+        echo "Failed parse pkg name!"
+	exit 4
 fi
 echo "Making package for '$pkgname'..."
 if [ -d $pkgname ]; then
-	rm -rf $pkgname
+        rm -rf $pkgname
 fi
 mkdir $pkgname
-mv $rpmpath $pkgname/
 cd $pkgname
+if [[ "$rpmpath" =~ ^http.* ]]; then
+	wget -O "$pkgname.rpm" "$rpmpath"
+	if [ $? -ne 0 ]; then
+		echo "Failed download file!"
+		exit 5
+	fi
+else
+	mv "../$pkgname.rpm" "$pkgname.rpm" &> /dev/null
+fi
+if [ ! -f "$pkgname.rpm" ]; then
+	echo "File '$rpmpath' not found!"
+	exit 1
+fi
 cleanpkg=$(echo $pkgname | egrep -o '^[a-z0-9\-]{3,}.' | head -n1)
 cleanpkg=${cleanpkg::-3}
 if [ -z $cleanpkg ]; then
