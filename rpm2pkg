@@ -1,0 +1,37 @@
+#!/bin/bash
+rpmpath=$1
+pkgname=$(echo "$rpmpath" | sed "s/.rpm//")
+if [ ! -f $rpmpath ]; then
+	echo "File '$rpmpath' not found!"
+	exit 1
+fi
+echo "Making package for '$pkgname'..."
+if [ -d $pkgname ]; then
+	rm -rf $pkgname
+fi
+mkdir $pkgname
+mv $rpmpath $pkgname/
+cd $pkgname
+cleanpkg=$(echo $pkgname | egrep -o '^[a-z0-9\-]{3,}.' | head -n1)
+cleanpkg=${cleanpkg::-3}
+if [ -z $cleanpkg ]; then
+	echo "Failed parse pkg name!"
+	exit 2
+else
+	echo "Pkg name = $cleanpkg"
+fi
+version=${pkgname/"$cleanpkg"/}
+version=$(echo $version | egrep -o '[[:digit:]\.]{1,}' | head -n1)
+if [ -z $version ]; then
+        echo "Failed parse pkg version!"
+        exit 3
+else
+        echo "Pkg version = $version"
+fi
+
+PKGBUILD="pkgname=\"$cleanpkg\"\npkgver=\"$version\"\npkgrel=\"1\"\npkgdesc=\"$pkgname\"\narch=(\"x86_64\")\nsource=(\"$rpmpath\")\nsha256sums=(\"SKIP\")\n\npackage() {\n\tfind \$srcdir/ -mindepth 1 -maxdepth 1 -type d | xargs cp -r -t \"\$pkgdir\"\n}"
+
+echo -e $PKGBUILD | tee PKGBUILD &> /dev/null
+echo "Build and install package..."
+sudo makepkg -si
+exit 0
