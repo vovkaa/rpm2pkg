@@ -51,5 +51,5 @@ PKGBUILD="pkgname=\"$cleanpkg\"\npkgver=\"$version\"\npkgrel=\"1\"\npkgdesc=\"$p
 
 echo -e $PKGBUILD | tee PKGBUILD &> /dev/null
 echo "Build and install package..."
-sudo makepkg -si
+makepkg -si
 exit 0
